@@ -10,7 +10,7 @@ from sklearn.preprocessing import LabelEncoder
 # Cargar los datos
 data = pd.read_csv('https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv')
 
-# Preparar datos para el primer gráfico (Supervivencia por género)
+# Preparar datos para el gráfico de supervivencia por género
 gender_survival = data.groupby(['Sex', 'Survived']).size().reset_index(name='Count')
 gender_survival['Survived'] = gender_survival['Survived'].replace({0: 'No', 1: 'Sí'})
 
@@ -23,7 +23,7 @@ fig_gender_survival = px.bar(
     barmode='group', 
     labels={'Sex': 'Género', 'Count': 'Número de pasajeros', 'Survived': 'Sobrevivieron'},
     title='Distribución del género y supervivencia de pasajeros en el Titanic',
-    color_discrete_sequence=['#FF5733', '#33FF57']
+    color_discrete_sequence=['#FF4500', '#33FF57']
 )
 
 # Preprocesamiento de los datos
@@ -69,16 +69,41 @@ fig_accuracy_gender = px.bar(
     x='Gender', 
     y='Accuracy', 
     title='Precisión del Modelo por Género',
-    color_discrete_sequence=['#3498db', '#EF553B']
+    color_discrete_sequence=['#FF4500'],
+    text='Accuracy'  # Mostrar la precisión directamente en las barras
 )
 
-# Gráfico para la distribución de edades
-fig_age_distribution = px.histogram(data, x='Age', nbins=30, title='Distribución de Edades en el Titanic', color_discrete_sequence=['#FF5733'])
+
+# Calcular la media de edad por género 
+age_mean_by_gender = data_cleaned.groupby('Sex')['Age'].mean().round(0).reset_index()
+
+# Crear un gráfico de barras para visualizar la media de edad por género
+fig_mean_age_by_gender = px.bar(
+    age_mean_by_gender, 
+    x='Sex',  # Usamos la columna original 'Sex', no la codificada
+    y='Age', 
+    title='Media de Edad por Género en el Titanic',
+    labels={'Age': 'Edad Media', 'Sex': 'Género'},
+    text='Age',  # Mostrar la media directamente en la barra
+    color_discrete_sequence=['#3498db', '#e74c3c']  # Colores personalizados para cada género
+)
+
+# Gráfico para la distribución de edades (histograma)
+# Redondear las edades a enteros
+data['Age'] = data['Age'].apply(lambda x: int(x) if pd.notnull(x) else x)
+
+fig_age_distribution = px.histogram(
+    data, 
+    x='Age', 
+    nbins=30, 
+    title='Distribución de Edades en el Titanic', 
+    labels={'Age': 'Edad'}
+)
 
 # Inicializar la aplicación Dash
 app = dash.Dash(__name__)
 
-# Definir el layout del dashboard con CSS para estilos
+# Definir el layout del dashboard con el nuevo gráfico de media de edad
 app.layout = html.Div(children=[
     # Título centrado
     html.H1(
@@ -120,6 +145,21 @@ app.layout = html.Div(children=[
         dcc.Graph(
             id='grafico-precision-genero',
             figure=fig_accuracy_gender
+        ),
+        style={
+            'backgroundColor': '#ffffff', 
+            'padding': '20px', 
+            'borderRadius': '10px', 
+            'boxShadow': '0 4px 8px rgba(0, 0, 0, 0.1)', 
+            'marginBottom': '20px',
+        }
+    ),
+
+    # Gráfico de media de edad por género
+    html.Div(
+        dcc.Graph(
+            id='grafico-media-edad-genero',
+            figure=fig_mean_age_by_gender
         ),
         style={
             'backgroundColor': '#ffffff', 
